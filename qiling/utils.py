@@ -134,10 +134,11 @@ class QlFileDes:
 
 
 class QlStopOptions(object):
-    def __init__(self, stackpointer=False, exit_trap=False):
+    def __init__(self, stackpointer=False, exit_trap=False, unmapped_ip=False):
         super().__init__()
         self._stackpointer = stackpointer
         self._exit_trap = exit_trap
+        self._unmapped_ip = unmapped_ip
 
     @property
     def stackpointer(self) -> bool:
@@ -148,8 +149,12 @@ class QlStopOptions(object):
         return self._exit_trap
 
     @property
+    def unmapped_ip(self) -> bool:
+        return self._unmapped_ip
+
+    @property
     def any(self) -> bool:
-        return self.stackpointer or self.exit_trap
+        return self.stackpointer or self.exit_trap or self.unmapped_ip
 
 
 def catch_KeyboardInterrupt(ql):

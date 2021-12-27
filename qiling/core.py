@@ -10,7 +10,7 @@ import ntpath, os, pickle, platform
 from typing import Dict, List, Union
 from typing import TYPE_CHECKING
 
-from unicorn.unicorn import Uc
+from unicorn.unicorn import Uc, uc
 if TYPE_CHECKING:
     from .arch.register import QlRegisterManager
     from .arch.arch import QlArch
@@ -48,6 +48,7 @@ class Qiling(QlCoreHooks, QlCoreStructs):
             filter = None,
             stop_on_stackpointer = False,
             stop_on_exit_trap = False,
+            stop_on_unmapped_ip = False,
             stdin=None,
             stdout=None,
             stderr=None,
@@ -84,7 +85,7 @@ class Qiling(QlCoreHooks, QlCoreStructs):
         self._platform_arch = arch_convert(platform.machine().lower())
         self._internal_exception = None
         self._uc = None
-        self._stop_options = QlStopOptions(stackpointer=stop_on_stackpointer, exit_trap=stop_on_exit_trap)
+        self._stop_options = QlStopOptions(stackpointer=stop_on_stackpointer, exit_trap=stop_on_exit_trap, unmapped_ip=stop_on_unmapped_ip)
 
         ##################################
         # Definition after ql=Qiling()   #
@@ -636,6 +637,7 @@ class Qiling(QlCoreHooks, QlCoreStructs):
         """ The stop options configured:
             - stackpointer: Stop execution on a negative stackpointer
             - exit_trap: Stop execution when the ip enters a guarded region
+            - unmapped_ip: Stop execution when the ip points to unmapped memory (potential buffer overflow?)
             - any: Is any of the options enabled?
 
         Returns:
@@ -684,6 +686,22 @@ class Qiling(QlCoreHooks, QlCoreStructs):
                 ql.emu_stop()
 
             self.hook_address(_exit_trap, self._exit_trap_addr)
+
+        # Stop when running to an unmapped IP
+        if self.stop_options.unmapped_ip:
+            def _check_ip(ql, access, address, size, value):
+                # make sure we got here for the right reason
+                if access == uc.UC_MEM_FETCH_UNMAPPED:
+                    self.log.info(f'Process returned from diverted execution flow to 0x{address:x}')
+                    # to gracefully recover from memory read/write error, you have to memory map the invalid page before you return true
+                    # https://github.com/unicorn-engine/unicorn/issues/1484#issuecomment-970727708
+                    self.mem.map(address//0x1000*0x1000, 0x1000, info='[BufferOverflow guard]')
+                    ql.emu_stop()
+
+                    # tell unicorn we mapped our stuff
+                    return True
+
+            self.hook_mem_fetch_invalid(_check_ip)
 
     def write_exit_trap(self):
         self._initial_sp = self.reg.arch_sp
