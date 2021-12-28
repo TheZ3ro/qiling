@@ -195,21 +195,25 @@ class QlMemoryManager:
     def get_lib_base(self, filename: str) -> int:
         return next((s for s, _, _, info, _ in self.map_info if os.path.split(info)[1] == filename), -1)
 
-    def align(self, addr: int, alignment: int = None) -> int:
-        """Round up to nearest alignment.
+    def align(self, addr: int, alignment: int = None, floor: bool = False) -> int:
+        """Round to nearest alignment.
 
         Args:
             addr: address to align
             alignment: alignment granularity, must be a power of 2
+            floor: round down if true, round up if false
         """
 
         if alignment is None:
             alignment = self.pagesize
 
-        # rounds up to nearest alignment
         mask = self.max_mem_addr & -alignment
-
-        return (addr + (alignment - 1)) & mask
+        if not floor:
+            # rounds up to nearest alignment
+            return (addr + (alignment - 1)) & mask
+        else:
+            # rounds down to nearest alignment
+            return addr & mask
 
     def save(self):
         """Save entire memory content.

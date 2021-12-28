@@ -694,7 +694,8 @@ class Qiling(QlCoreHooks, QlCoreStructs):
                     self.log.info(f'Process returned from diverted execution flow to 0x{address:x}')
                     # to gracefully recover from memory read/write error, you have to memory map the invalid page before you return true
                     # https://github.com/unicorn-engine/unicorn/issues/1484#issuecomment-970727708
-                    self.mem.map(address//0x1000*0x1000, 0x1000, info='[BufferOverflow guard]')
+                    address = self.mem.align(address, self.mem.pagesize, True)
+                    self.mem.map(address, self.mem.pagesize, info='[BufferOverflow guard]')
                     ql.emu_stop()
 
                     # tell unicorn we mapped our stuff
