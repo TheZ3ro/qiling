@@ -578,7 +578,7 @@ class QlLoaderPE(QlLoader, Process):
                 self.ql.stop_execution_pattern = 0xDEADC0DE
 
                 if self.ql.archtype == QL_ARCH.X86:  # Win32
-                    if not self.ql.stop_options.any:
+                    if not self.ql.stop_options.need_guard_page:
                         # We know that a driver will return,
                         # so if the user did not configure stop options, write a sentinel return value
                         self.ql.mem.write(sp, self.ql.stop_execution_pattern.to_bytes(length=4, byteorder='little'))
@@ -586,7 +586,7 @@ class QlLoaderPE(QlLoader, Process):
                     self.ql.log.debug('Writing 0x%08X (PDRIVER_OBJECT) to [ESP+4](0x%08X)' % (self.ql.loader.driver_object_address, sp+0x4))
                     self.ql.log.debug('Writing 0x%08X (RegistryPath) to [ESP+8](0x%08X)' % (self.ql.loader.regitry_path_address, sp+0x8))
                 elif self.ql.archtype == QL_ARCH.X8664:  # Win64
-                    if not self.ql.stop_options.any:
+                    if not self.ql.stop_options.need_guard_page:
                         # We know that a driver will return,
                         # so if the user did not configure stop options, write a sentinel return value
                         self.ql.mem.write(sp, self.ql.stop_execution_pattern.to_bytes(length=8, byteorder='little'))
