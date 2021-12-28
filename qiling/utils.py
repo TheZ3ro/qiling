@@ -153,8 +153,8 @@ class QlStopOptions(object):
         return self._unmapped_ip
 
     @property
-    def any(self) -> bool:
-        return self.stackpointer or self.exit_trap or self.unmapped_ip
+    def need_guard_page(self) -> bool:
+        return self.stackpointer or self.exit_trap
 
 
 def catch_KeyboardInterrupt(ql):
