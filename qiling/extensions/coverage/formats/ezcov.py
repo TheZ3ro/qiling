@@ -6,8 +6,13 @@
 from collections import namedtuple
 from os.path import basename
 
+import re
+
 from .base import QlBaseCoverage
 
+
+def get_mem_map_from_addr(ql, ins):
+    return next((x for x in ql.mem.map_info if x[0] <= ins and x[1] >= ins), None)
 
 # Adapted from https://github.com/nccgroup/Cartographer/blob/main/EZCOV.md#coverage-data
 class bb_entry(namedtuple('bb_entry', 'offset size mod_id')):
@@ -36,9 +41,12 @@ class QlEzCoverage(QlBaseCoverage):
 
     @staticmethod
     def block_callback(ql, address, size, self):
-        mod = ql.loader.find_containing_image(address)
+        mod = get_mem_map_from_addr(ql, address)
         if mod is not None:
-            ent = bb_entry(address - mod.base, size, basename(mod.path))
+            p = re.compile(r'^\[.+\]\s*')
+            base = mod[0]
+            path = p.sub('', mod[3])
+            ent = bb_entry(address - base, size, basename(path))
             self.basic_blocks.append(ent)
 
     def activate(self):
